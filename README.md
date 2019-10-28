@@ -1,4 +1,5 @@
-# korpi-select [![Build Status](https://travis-ci.com/korpisofta/korpi-select.svg?branch=master)](https://travis-ci.com/korpisofta/korpi-select)
+# korpi-select
+[![Build Status](https://travis-ci.com/korpisofta/korpi-select.svg?branch=master)](https://travis-ci.com/korpisofta/korpi-select)
 > Select is to edn what XPath is to XML.
 
 Select is a Clojure library for easy handling of large documents. 
@@ -28,26 +29,20 @@ so you get
  {:name "coat", :price 140})
 ```
 
-# Motivation
+# More motivation
 
-If you are using a document oriented database, you probably end up having fairly large object trees. In order to use these trees you end up having a lot of code that looks like
+If you are using a document oriented database, you probably end up having fairly large object trees. In order to use these trees you write code that looks like
 ```clojure
 (->> db
      (:customers)
      (vals)
-     (mapcat #(:products %)))
+     (mapcat #(:products %))
+     (keep :price)
+     (reduce + 0))
 ```
-While it is quite ok to write, and it works, it hides the purpose of the code behind several functions. The reader of your code should see that you want all products from all customers, like
+Although this kind of code works, it is full of noise. The reader of your code should see what you mean:
 ```clojure
-(select [:customers ** :products **] db)
-```
-where the meaning is clear. And if you only want to take one customer (with key 724), you dont have to change the feeling of the code at all
-```clojure
-(select [:customers 724 :products **] db)
-```
-Or if you want to compute the sum of all the items for one customer:
-```clojure
-(select-1 [:customers 724 :products ** :price =>sum] db)
+(select-1 [:customers ** :products ** :price =>sum] db)
 ```
 
 
@@ -61,17 +56,19 @@ and
 ```clojure
 (select-1 [...] data)
 ```
-The former one returns a sequence and the latter takes the first element of the sequence and return that. `select-1` is handy when combined with reducing selectors, like
+The former one returns a sequence and the latter takes the first element of the sequence and returns that. `select-1` is handy when combined with reducing selectors, like
 ```clojure
 (select-1 [:customers ** :products ** :price =>sum] db)
 ```
-Reducing selectors have a prefix `=>` and they return just one element, so `select-1` works nicely with them.
+Reducing selectors have a prefix `=>` and they return just one element.
 
-If `select` or `select-1` is called without the data to work on, they return [transducers](https://clojure.org/reference/transducers) just like core library functions `map, take, etc.`. A transducer is a composable transformation for data.
+# Select is a transducer
 
-## The first argument to select
+If `select` or `select-1` are called without the data to work on, they return [transducers](https://clojure.org/reference/transducers) just like core library functions `map, take, etc.`. The first argument to select is a vector of transducers. So basically `select` is function that composes transducers. 
 
-The first argument to select is actually a vector of transducers. But as you know, a keyword or a number is not a transducer. Keywords, numbers and strings are automatically converted into transducers. (More on this a bit later.)
+In addition top composing transducers, select transforms things into transducers. In the previous examples, the vector argument had keywords. Keywords, numbers and strings are automatically converted into transducers. There are two kinds of automatic conversions:
+1. functions are converted using `keep`
+1. everything else is converted by assuming that it is a key in an associative collection
 
 So, because select can return a transducer and it takes a vector of transducers as a parameter, *you can compose selects*:
 ```clojure
@@ -80,5 +77,46 @@ So, because select can return a transducer and it takes a vector of transducers 
   (select [customers products] db))
 ```
 
-# Examples of all the things that you can do with select
+# Examples
+
+## Select using number or string as a map key
+```clojure
+(select [:customers 724] db)
+```
+## Select all items in a sequence or all values in a map
+```clojure
+(select [:customers **] db)
+```
+## Select recursively from all nested maps or sequences
+This selection method works like `//` -selector in XPath.
+```clojure
+(select [-all- :price] db)
+```
+## Reducing values
+Reducing transducers have a naming convention: they start with `=>`. There are five predefined transducers: `=>count` `=>sum` `=>vec` `=>first` `=>last`
+```clojure
+(select-1 [-all- :price =>sum] db)
+```
+## Using other functions
+All non-transducer functions are transformed into transducers using keep, so
+```clojure
+(select [:customers ** #(select-keys % [:name])] db)
+```
+is equivalent to
+```clojure
+(select [:customers ** (keep #(select-keys % [:name]))] db)
+```
+## Extracting keys from maps
+
+
+
+
+# License
+
+© Korpisofta Oy
+
+Apache License Version 2.0
+
+
+
 

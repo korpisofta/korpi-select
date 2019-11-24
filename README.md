@@ -1,5 +1,6 @@
 # korpi-select
 [![Build Status](https://travis-ci.com/korpisofta/korpi-select.svg?branch=master)](https://travis-ci.com/korpisofta/korpi-select)
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.korpisofta/korpi-select.svg)](https://clojars.org/org.clojars.korpisofta/korpi-select)
 > Select is to edn what XPath is to XML.
 
 Select is a Clojure library for easy handling of large documents.
@@ -132,7 +133,7 @@ Here are example selects and their equivalent regular Clojure counterparts:
 (for [[k v] (:customers db)
       product (-> v :products)]
   (assoc product :company-id k))
-    
+
 ;; Pushing item into leaf level
 (select [:customers ** (push :name [:products **])] db)
 ;; without select:
@@ -161,7 +162,7 @@ Here are example selects and their equivalent regular Clojure counterparts:
 
 ;; filtering items based on data on leaf level
 ;; - select all customers who have only expensive products
-(select [:customers ** 
+(select [:customers **
          (all [:products ** :price #(> % 100)])] db)
 ;; without select:
 (->> db

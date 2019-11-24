@@ -2,10 +2,12 @@
 [![Build Status](https://travis-ci.com/korpisofta/korpi-select.svg?branch=master)](https://travis-ci.com/korpisofta/korpi-select)
 > Select is to edn what XPath is to XML.
 
-Select is a Clojure library for easy handling of large documents. 
+Select is a Clojure library for easy handling of large documents.
 Using select it is easy to pick items from deeply nested maps and vectors. Just like XPath is used to pick elements from XML documents.
 
-Example: you have a data structure which is deeply nested and in the leaf level it contains _products_
+*Example 1.*
+
+You have a data structure which is deeply nested and in the leaf level it contains _products_
 ```clojure
 (def db
   {:customers
@@ -29,9 +31,9 @@ so you get
  {:name "coat", :price 140})
 ```
 
-# More motivation
+*Example 2.*
 
-If you are using a document oriented database, you probably end up having fairly large object trees. In order to use these trees you write code that looks like
+You are using a document oriented database and you end up having large object trees. In order to use these trees you write code that looks like
 ```clojure
 (->> db
      (:customers)
@@ -40,37 +42,40 @@ If you are using a document oriented database, you probably end up having fairly
      (keep :price)
      (reduce + 0))
 ```
-Although this kind of code works, it is full of noise. The reader of your code should see what you mean:
+Although this kind of code works, it is full of noise. Your business logic is hidden behind technical details. The reader of your code should see what you mean:
 ```clojure
 (select-1 [:customers ** :products ** :price =>sum] db)
 ```
-
 
 # Usage
 
-The select part of the API has two functions:
+The select API has two functions:
 ```clojure
-(select [...] data)
+(defn select [selectors data])
+(defn select-1 [selectors data])
 ```
-and 
-```clojure
-(select-1 [...] data)
-```
-The former one returns a sequence and the latter takes the first element of the sequence and returns that. `select-1` is handy when combined with reducing selectors, like
+`select` returns a sequence and `select-1` takes the first element of the sequence and returns that. `select-1` is handy when combined with reducing selectors, like
 ```clojure
 (select-1 [:customers ** :products ** :price =>sum] db)
 ```
-Reducing selectors have a prefix `=>` and they return just one element.
+Reducing selectors have a prefix `=>` and they return one element.
 
-# Select is a transducer
+The `data` part is optional in `select` and if it is left out a transducer is returned.
 
-If `select` or `select-1` are called without the data to work on, they return [transducers](https://clojure.org/reference/transducers) just like core library functions `map, take, etc.`. The first argument to select is a vector of transducers. So basically `select` is function that composes transducers. 
+# The API is all about composing transducers
 
-In addition top composing transducers, select transforms things into transducers. In the previous examples, the vector argument had keywords. Keywords, numbers and strings are automatically converted into transducers. There are two kinds of automatic conversions:
-1. functions are converted using `keep`
-1. everything else is converted by assuming that it is a key in an associative collection
+If `select` is called without the data to work on, it returns a [transducer](https://clojure.org/reference/transducers) just like Clojure core library functions `map, take, etc.`. The first argument to select is a vector of transducers or things that can be converted into transducers. So basically `select` is function that composes transducers.
 
-So, because select can return a transducer and it takes a vector of transducers as a parameter, *you can compose selects*:
+## Converting non-transducers into transducers
+
+There are two predefined automatic conversions into transducers:
+1. Functions are converted using `keep`.
+  This means that _keywords_ convert so that `:foo` will become `(keep :foo)`
+1. Everything else is converted by assuming that it is a key in an associative collection. So _strings_ are converted so that `"foo"` will become `(keep #(get % "foo"))`
+
+## Using transducers as input to select
+
+Since `select` returns a transducer (1-arity) and it takes a vector of transducers as a parameter, *you can compose selects*:
 ```clojure
 (let [customers (select [:customers **])
       products (select [:products **])]
@@ -79,34 +84,91 @@ So, because select can return a transducer and it takes a vector of transducers 
 
 # Examples
 
-## Select using number or string as a map key
+Here are example selects and their equivalent regular Clojure counterparts:
+
 ```clojure
+;; Select using number or string as a map key
 (select [:customers 724] db)
-```
-## Select all items in a sequence or all values in a map
-```clojure
+;; without select:
+(get-in db [:customers 724])
+
+;; Select all items in a sequence or all values in a map
 (select [:customers **] db)
-```
-## Select recursively from all nested maps or sequences
-This selection method works like `//` -selector in XPath.
-```clojure
+;; without select:
+(-> db :customers (vals))
+
+;; Select recursively from all nested maps or sequences
+;; This selection method works like `//` -selector in XPath.
 (select [-all- :price] db)
-```
-## Reducing values
-Reducing transducers have a naming convention: they start with `=>`. There are five predefined transducers: `=>count` `=>sum` `=>vec` `=>first` `=>last`
-```clojure
+;; without select: (but not exactly same)
+(->> db :customers (vals) (mapcat :products) (keep :price))
+
+;; Reducing values
+;; Reducing transducers have a naming convention: they start with `=>`. There are five predefined transducers: `=>count` `=>sum` `=>vec` `=>first` `=>last`
 (select-1 [-all- :price =>sum] db)
-```
-## Using other functions
-All non-transducer functions are transformed into transducers using keep, so
-```clojure
+;; without select: (but not exactly same)
+(->> db :customers (vals) (mapcat :products) (keep :price) (reduce +))
+
+;; Using other functions
+;; All non-transducer functions are transformed into transducers using keep, so
 (select [:customers ** #(select-keys % [:name])] db)
+;; without select:
+(->> db :customers (vals) (keep #(select-keys % [:name])))
+
+
+;; Extracting keys from maps
+(select [:customers ** :products ** (values :name :price)] db)
+;; without select:
+(->> db :customers (vals) (mapcat :products) (mapcat (juxt :name :price)))
+
+;; Pushing the map key into map value
+(select [:customers (push-key :company-id)] db)
+;; without select:
+(->> db :customers (map (fn [[k v]] (assoc v :company-id k))))
+
+;; Pushing the map key into leaf level
+(select [:customers (push-key :company-id [:products **])] db)
+;; without select:
+(for [[k v] (:customers db)
+      product (-> v :products)]
+  (assoc product :company-id k))
+    
+;; Pushing item into leaf level
+(select [:customers ** (push :name [:products **])] db)
+;; without select:
+(for [customer (-> db :customers (vals))
+      product (:products customer)]
+  (assoc product :name (:name customer)))
+
+;; Pulling items from leaves to branches
+;; - select all customers and add an array of product names into them
+(select [:customers ** (pull :product-names [:products ** :name =>vec])] db)
+;; without select:
+(for [customer (-> db :customers (vals))
+      :let [product-names (->> customer :products (keep :name) (into []))]]
+  (assoc customer :product-names product-names))
+
+;; filtering items based on data on leaf level
+;; - select all products where price is greater than 150
+(select [:customers ** :products **
+         (exists [:price #(> % 150)])] db)
+;; without select:
+(->> db
+     :customers
+     (vals)
+     (mapcat :products)
+     (filter #(> (:price %) 150)))
+
+;; filtering items based on data on leaf level
+;; - select all customers who have only expensive products
+(select [:customers ** 
+         (all [:products ** :price #(> % 100)])] db)
+;; without select:
+(->> db
+     :customers
+     (vals)
+     (filter (fn [c] (every? (fn [i] (> (:price i) 100)) (:products c)))))
 ```
-is equivalent to
-```clojure
-(select [:customers ** (keep #(select-keys % [:name]))] db)
-```
-## Extracting keys from maps
 
 
 

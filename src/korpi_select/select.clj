@@ -70,19 +70,19 @@
 
 ;; reducers
 
-(defn reducer [f init]
+(defn reducer [f initf]
   (fn [rf]
-    (let [value (volatile! init)]
+    (let [value (volatile! (initf))]
       (fn
         ([] (rf))
         ([result] (rf (unreduced (rf result @value))))
         ([result input] (vswap! value f input))))))
 
-(def =>sum (reducer + 0))
+(def =>sum (reducer + (constantly 0)))
 (def =>count (comp (map (constantly 1)) =>sum))
-(def =>vec (reducer conj []))
+(def =>vec (comp (reducer conj! #(transient [])) (keep persistent!)))
 (def =>first (take 1))
-(def =>last (reducer (fn [_ x] x) nil))
+(def =>last (reducer (fn [_ x] x) (constantly nil)))
 
 (mark-as-transducer =>sum)
 

@@ -105,7 +105,6 @@
     (is (= [50 20 180 140]
            (select [-all- :price] db)))))
 
-
 (deftest push-pull-and-push-key
   (testing "pull"
     (let [all-customers (select [:customers **])
@@ -259,13 +258,13 @@
            (push :total-price [:products **])
            (pull :tax [:price (map #(* % 0.2))])
            (pull :price+tax [(values :price :tax) =>sum])
-           #(select-keys % :total-price :price :tax :price+tax)]
+           #(select-keys % [:total-price :price :tax :price+tax])]
           db)
 
   (select [:customers ** :products **
-           (exists #(> % 100) [:price])
+           (exists [:price #(> % 100)])
            ;(filter #(> (:price %) 100))
-           #(select-keys % :price)]
+           #(select-keys % [:price])]
           db)
   (into []
         (select [:customers ** :products ** #(select-keys % [:price :name])])
@@ -274,7 +273,7 @@
 
   (select-1 [:customers ** :products **
              #(select-keys % [:price :name])
-             (reducer conj! (transient []))
+             (reducer conj! #(transient []))
              persistent!]
              db)
 

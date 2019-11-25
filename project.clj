@@ -1,4 +1,4 @@
-(defproject org.clojars.korpisofta/korpi-select "1.0.0"
+(defproject org.clojars.korpisofta/korpi-select "1.0.1"
   :description "XPath -like selection library for clojure maps"
   :url "https://github.com/korpisofta/korpi-select"
   :license {:name "Apache License Version 2.0"

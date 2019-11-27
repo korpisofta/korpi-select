@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.clojars.korpisofta</groupId>
+  <groupId>korpisofta</groupId>
   <artifactId>korpi-select</artifactId>
   <packaging>jar</packaging>
   <version>1.0.1</version>
@@ -17,7 +17,7 @@
     <url>https://github.com/korpisofta/korpi-select</url>
     <connection>scm:git:git://github.com/korpisofta/korpi-select.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/korpisofta/korpi-select.git</developerConnection>
-    <tag>721905502233c760bdf66c69a8ea247e0a086d93</tag>
+    <tag>b8f590e37687d17cf8eb6b187df2d500c9992a7b</tag>
   </scm>
   <build>
     <sourceDirectory>src</sourceDirectory>

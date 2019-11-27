@@ -1,6 +1,6 @@
 # korpi-select
 [![Build Status](https://travis-ci.com/korpisofta/korpi-select.svg?branch=master)](https://travis-ci.com/korpisofta/korpi-select)
-[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.korpisofta/korpi-select.svg)](https://clojars.org/org.clojars.korpisofta/korpi-select)
+[![Clojars Project](https://img.shields.io/clojars/v/korpisofta/korpi-select.svg)](https://clojars.org/korpisofta/korpi-select)
 > Select is to edn what XPath is to XML.
 
 Select is a Clojure library for easy handling of large documents.
